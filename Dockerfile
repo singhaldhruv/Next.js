@@ -6,8 +6,8 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json to leverage Docker caching
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies for build step)
-RUN npm install
+# Install dependencies with legacy peer dependency handling
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application source code
 COPY . .
@@ -29,7 +29,7 @@ COPY --from=builder /usr/src/app/package*.json ./
 COPY --from=builder /usr/src/app/public ./public || true
 
 # Install production dependencies only
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
 
 # Set the application to run on port 3000
 EXPOSE 3000
