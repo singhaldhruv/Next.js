@@ -1,31 +1,31 @@
-# Use a slim version of Node.js
-FROM node:14-slim AS builder
+FROM node:16-slim AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy only package files to leverage Docker's caching
+# Copy dependency files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm ci --legacy-peer-deps
 
-# Copy application files
+# Copy source code
 COPY . .
 
-# Build the application
+# Build the app (if applicable)
 RUN npm run build
 
-# Use a lightweight production image
-FROM node:14-alpine AS production
+# Use a lighter image for production
+FROM node:16-slim
 
+# Set working directory
 WORKDIR /app
 
-COPY --from=builder /app /app
+# Copy build artifacts and dependencies
+COPY --from=builder /app ./
 
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Expose port and run
+# Expose the port the app runs on
 EXPOSE 3000
+
+# Start the app
 CMD ["npm", "start"]
