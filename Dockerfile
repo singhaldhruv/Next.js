@@ -1,37 +1,37 @@
 # Stage 1: Build the application
-FROM node:20 AS builder
+FROM node:14 AS builder
 
-WORKDIR /usr/src/app
+# Set working directory
+WORKDIR /app
 
-# Copy package.json and package-lock.json to leverage Docker caching
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies with legacy peer dependency handling
-RUN npm install --legacy-peer-deps
+# Install all dependencies
+RUN npm install
 
-# Copy the rest of the application source code
+# Copy the rest of the application files
 COPY . .
 
-# Build the application
-RUN npm run build:scss && npm run build
+# Build the Next.js application
+RUN npm run build
 
-# Stage 2: Create a lightweight production image with only necessary files
-FROM node:20-alpine AS production
+# Stage 2: Create the production image
+FROM node:14 AS production
 
-WORKDIR /usr/src/app
+# Set working directory
+WORKDIR /app
 
-# Copy essential files and folders from the builder stage
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/.next ./.next
-COPY --from=builder /usr/src/app/package*.json ./
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
 
-# Copy the public folder if it exists
-COPY --from=builder /usr/src/app/public ./public || true
+# Install only production dependencies
+RUN npm install --production
 
-# Install production dependencies only
-RUN npm install --production --legacy-peer-deps
-
-# Set the application to run on port 3000
+# Expose the port that the app runs on
 EXPOSE 3000
 
 # Start the application
