@@ -33,7 +33,7 @@ pipeline {
         
         stage('Building Image') {
             steps {
-                docker_build("Nextjs-app","latest","dhruv2727")
+                docker_build("nextjs-app","latest","dhruv2727")
                 echo "Image built successfully using shared library"
             }
         }
@@ -42,7 +42,7 @@ pipeline {
             steps{
                 echo "Pushing the image to docker hub"
                 script{
-                    docker_push("Nextjs-app","latest","dhruv2727")
+                    docker_push("nextjs-app","latest","dhruv2727")
                     echo "Image pushed successfully"
                 }
             }
