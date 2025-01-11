@@ -1,31 +1,38 @@
 # Stage 1: Build the application
-FROM node:14 AS builder
+FROM node:20 AS builder
 
 WORKDIR /usr/src/app
 
+# Copy only package.json and package-lock.json to leverage Docker caching
 COPY package*.json ./
 
-RUN npm install
+# Install dependencies
+RUN npm ci
 
+# Copy the rest of the application source code
 COPY . .
 
-RUN npm run build:scss
-RUN npm run build
+# Build the application
+RUN npm run build:scss && npm run build
 
-# Stage 2: Create a production image with only the necessary files
-FROM node:14-alpine AS production
+# Stage 2: Create a lightweight production image with only the necessary files
+FROM node:20-alpine AS production
 
 WORKDIR /usr/src/app
 
+# Copy essential files and folders from the builder stage
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/.next ./.next
 COPY --from=builder /usr/src/app/package*.json ./
 
-# Check if public folder exists and copy only if it does
-RUN if [ -d /usr/src/app/public ]; then cp -r /usr/src/app/public ./public; fi
+# Copy the public folder if it exists
+COPY --from=builder /usr/src/app/public ./public || true
 
-RUN npm install --only=production
+# Install only production dependencies
+RUN npm ci --omit=dev
 
+# Set the application to run on port 3000
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# Start the application
+CMD ["npm", "start"]
