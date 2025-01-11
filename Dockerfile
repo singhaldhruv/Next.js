@@ -1,31 +1,30 @@
+# Dockerfile
 FROM node:16-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy dependency files
+# Copy both package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
+# Use npm ci to install dependencies
 RUN npm ci --legacy-peer-deps
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Build the app (if applicable)
+# Build the application
 RUN npm run build
 
-# Use a lighter image for production
-FROM node:16-slim
+# Use a smaller base image for the final stage
+FROM node:16-slim AS runner
 
-# Set working directory
 WORKDIR /app
 
-# Copy build artifacts and dependencies
-COPY --from=builder /app ./
+# Copy the built files from the builder stage
+COPY --from=builder /app .
 
-# Expose the port the app runs on
+# Expose the application port
 EXPOSE 3000
 
-# Start the app
+# Start the application
 CMD ["npm", "start"]
