@@ -1,33 +1,57 @@
-pipeline{
-    agent {label "dhruv"}
-    
-    stages{
-        stage("Clone Code"){
-            steps{
-                echo "Cloning the code"
-                git url:"https://github.com/singhaldhruv/Next.js.git", branch: "main"
-            }  
-        }
-        stage("build"){
-            steps{
-                echo "Building the image"
-                sh "docker build -t nextjs-app ."
+@Library("Jenkins-Shared-Library") _
+
+pipeline {
+    agent { label "dhruv" }
+
+    stages {
+        stage('Cloning') {
+            steps {
+                clone("https://github.com/singhaldhruv/Next.js.git","main") 
+
+                echo "Code Cloned Successfully using shared library"
             }
         }
-        stage("Push to Docker Hub"){
-            steps{
-                echo "Pushing the image to docker hub"
-                withCredentials([usernamePassword(credentialsId:"DockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker tag nextjs-app ${env.dockerHubUser}/nextjs-app:latest"
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker push ${env.dockerHubUser}/nextjs-app:latest"
+
+        stage('Check and Install Docker') {
+            steps {
+                script {
+                    if (sh(script: "which docker || echo 'not found'", returnStdout: true).trim() == "not found") {
+                        echo "Docker is not installed. Installing Docker..."
+                        sh """
+                        sudo apt-get update
+                        sudo apt-get install -y docker.io
+                        sudo systemctl start docker
+                        sudo systemctl enable docker
+                        """
+                        echo "Docker installed successfully."
+                    } else {
+                        echo "Docker is already installed."
+                    }
                 }
             }
         }
-        stage("Deploy"){
+        
+        stage('Building Image') {
+            steps {
+                docker_build("Nextjs-app","latest","dhruv2727")
+                echo "Image built successfully using shared library"
+            }
+        }
+        
+        stage("Push to Docker Hub"){
             steps{
-                echo "Deploying the container"
-                sh "docker-compose down && docker-compose up -d"               
+                echo "Pushing the image to docker hub"
+                script{
+                    docker_push("Nextjs-app","latest","dhruv2727")
+                    echo "Image pushed successfully"
+                }
+            }
+        }
+        
+        stage('Deploy'){
+            steps{
+                sh "docker-compose down && docker-compose up -d"
+                echo "This is deploying the code successfully again"
             }
         }
     }
